@@ -15,13 +15,17 @@
 * limitations under the License.
 */
 
+import AeroGearHttp
 import Foundation
 import UIKit
-import AeroGearHttp
+
+public typealias SuccessType = AnyObject?->()
+public typealias FailureType = NSError->()
 
 public let AGAppLaunchedWithURLNotification = "AGAppLaunchedWithURLNotification"
 public let AGAppDidBecomeActiveNotification = "AGAppDidBecomeActiveNotification"
 let AGAuthzErrorDomain = "AGAuthzErrorDomain"
+
 
 enum AuthorizationState {
     case AuthorizationStatePendingExternalApproval
@@ -29,11 +33,20 @@ enum AuthorizationState {
     case AuthorizationStateUnknown
 }
 
-public class OAuth2Module: AuthzModule {
+public class OAuth2Module {
     let config: Config
     var httpAuthz: Http
 
-    public var http: Http
+    public var http: Http {
+        get {
+            var headerFields: [String: String]?
+            if (self.isAuthorized()) {
+                headerFields = self.authorizationFields()
+                return Http(url: nil, sessionConfig: nil, headers: headerFields != nil ? headerFields! : [String: String]())
+            }
+            return Http()
+        }
+    }
     var oauth2Session: OAuth2Session
     var applicationLaunchNotificationObserver: NSObjectProtocol?
     var applicationDidBecomeActiveNotificationObserver: NSObjectProtocol?
@@ -55,8 +68,6 @@ public class OAuth2Module: AuthzModule {
         self.httpAuthz = Http(url: config.base, sessionConfig: NSURLSessionConfiguration.defaultSessionConfiguration())
         self.oauth2Session = session
         self.state = .AuthorizationStateUnknown
-        self.http = Http()
-        self.http.authzModule = self
     }
     
     // MARK: Public API - To be overriden if necessary by OAuth2 specific adapter
@@ -166,17 +177,7 @@ public class OAuth2Module: AuthzModule {
             })
     }
     
-    public func authorizationFields() -> [String: String]? {
-        if (self.oauth2Session.accessToken == nil) {
-            return nil
-        } else {
-            return ["Authorization":"Bearer \(self.oauth2Session.accessToken!)"]
-        }
-    }
     
-    public func isAuthorized() -> Bool {
-        return self.oauth2Session.accessToken != nil && self.oauth2Session.tokenIsNotExpired()
-    }
 
     // MARK: Internal Methods
     
@@ -237,6 +238,18 @@ public class OAuth2Module: AuthzModule {
             NSNotificationCenter.defaultCenter().removeObserver(applicationDidBecomeActiveNotificationObserver!)
             applicationDidBecomeActiveNotificationObserver = nil
         }
+    }
+    
+    func authorizationFields() -> [String: String]? {
+        if (self.oauth2Session.accessToken == nil) {
+            return nil
+        } else {
+            return ["Authorization":"Bearer \(self.oauth2Session.accessToken!)"]
+        }
+    }
+    
+    func isAuthorized() -> Bool {
+        return self.oauth2Session.accessToken != nil && self.oauth2Session.tokenIsNotExpired()
     }
     
     func urlAsString() -> String {
