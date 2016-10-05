@@ -35,9 +35,9 @@ extension Date
         dateStringFormatter.dateFormat = "yyyy-MM-dd hh:mm:ss a"
         let d = dateStringFormatter.date(from: dateString)
         if let unwrappedDate = d {
-            (self as NSDate).init(timeInterval:0, since:unwrappedDate)
+            self.init(timeInterval:0, since:unwrappedDate)
         } else {
-            (self as NSDate).init()
+            self.init()
         }
     }
     

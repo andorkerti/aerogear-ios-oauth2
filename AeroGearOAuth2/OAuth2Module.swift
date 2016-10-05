@@ -131,7 +131,7 @@ open class OAuth2Module: AuthzModule {
             params += "&prompt=consent"
         }
         
-        let url = URL(string:http.calculateURL(config.baseURL, url:config.authzEndpoint).absoluteString! + params)
+        let url = URL(string:http.calculateURL(config.baseURL, url:config.authzEndpoint).absoluteString + params)
         if let url = url {
             #if os(iOS)
             if config.isWebView {
@@ -163,7 +163,7 @@ open class OAuth2Module: AuthzModule {
                 paramDict["client_secret"] = config.clientSecret!
             }
             
-            http.POST(config.refreshTokenEndpoint!, parameters: paramDict, completionHandler: { (response, error) in
+            http.POST(config.refreshTokenEndpoint!, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
                 if (error != nil) {
                     if (error?.code == 400 || error?.code == 401 || error?.code == 403 || error?.code == 404) {
                         self.revokeLocalAccess()
@@ -199,7 +199,7 @@ open class OAuth2Module: AuthzModule {
             paramDict["client_secret"] = unwrapped
         }
         
-        http.POST(config.accessTokenEndpoint, parameters: paramDict, completionHandler: {(responseObject, error) in
+        http.POST(config.accessTokenEndpoint, parameters: paramDict as [String : AnyObject]?, completionHandler: {(responseObject, error) in
             if (error != nil) {
                 completionHandler(nil, error)
                 return
@@ -215,7 +215,7 @@ open class OAuth2Module: AuthzModule {
                 let expRefresh = expirationRefresh?.stringValue
                 
                 self.oauth2Session.saveAccessToken(accessToken, refreshToken: refreshToken, accessTokenExpiration: exp, refreshTokenExpiration: expRefresh)
-                completionHandler(accessToken, nil)
+                completionHandler(accessToken as AnyObject?, nil)
             }
         })
     }
@@ -231,14 +231,14 @@ open class OAuth2Module: AuthzModule {
             completionHandler(self.oauth2Session.accessToken! as AnyObject?, nil);
         } else if (self.oauth2Session.refreshToken != nil && self.oauth2Session.refreshTokenIsNotExpired()) {
             // need to refresh token
-            self.refreshAccessToken(completionHandler)
+            self.refreshAccessToken(completionHandler as! (Any?, NSError?) -> Void)
         } else if (self.config.isServiceAccount) {
             self.loginClientCredentials() { (accessToken, claims, error) in
                 completionHandler(accessToken, error)
             }
         } else {
             // ask for authorization code and once obtained exchange code for access token
-            self.requestAuthorizationCode(completionHandler)
+            self.requestAuthorizationCode(completionHandler as! (Any?, NSError?) -> Void)
         }
     }
     
@@ -247,9 +247,9 @@ open class OAuth2Module: AuthzModule {
      
      :param: completionHandler A block object to be executed when the request operation finishes.
      */
-    open func login(_ completionHandler: @escaping (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
+    open func login(_ completionHandler: @escaping (Any?, OpenIDClaim?, NSError?) -> Void) {
         
-        self.requestAccess { (response:AnyObject?, error:NSError?) -> Void in
+        self.requestAccess { (response:Any?, error:NSError?) -> Void in
             
             if (error != nil) {
                 completionHandler(nil, nil, error)
@@ -261,7 +261,7 @@ open class OAuth2Module: AuthzModule {
             }
             if let userInfoEndpoint = self.config.userInfoEndpoint {
                 
-                self.http.GET(userInfoEndpoint, parameters: paramDict, completionHandler: {(responseObject, error) in
+                self.http.GET(userInfoEndpoint, parameters: paramDict as [String : AnyObject]?, completionHandler: {(responseObject, error) in
                     if (error != nil) {
                         completionHandler(nil, nil, error)
                         return
@@ -290,7 +290,7 @@ open class OAuth2Module: AuthzModule {
         
         let paramDict: [String: String] = ["client_id": config.clientId, "client_secret": config.clientSecret!, "scope": config.scope, "grant_type": "client_credentials"]
         
-        http.POST(config.accessTokenEndpoint, parameters: paramDict, completionHandler: { (response, error) in
+        http.POST(config.accessTokenEndpoint, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
             if (error != nil) {
                 completionHandler(nil, nil, error)
                 return
@@ -307,7 +307,7 @@ open class OAuth2Module: AuthzModule {
                 
                 // in Keycloak refresh token get refreshed every time you use them
                 self.oauth2Session.saveAccessToken(accessToken, refreshToken: refreshToken, accessTokenExpiration: exp, refreshTokenExpiration: expRefresh)
-                completionHandler(accessToken,nil, nil);
+                completionHandler(accessToken as AnyObject?,nil, nil);
             }
         })
     }
@@ -324,7 +324,7 @@ open class OAuth2Module: AuthzModule {
         }
         let paramDict:[String:String] = ["token":self.oauth2Session.accessToken!]
         
-        http.POST(config.revokeTokenEndpoint!, parameters: paramDict, completionHandler: { (response, error) in
+        http.POST(config.revokeTokenEndpoint!, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
             if (error != nil) {
                 completionHandler(nil, error)
                 return
@@ -380,7 +380,8 @@ open class OAuth2Module: AuthzModule {
     
     #if os(iOS)
     func extractCode(_ notification: Notification, completionHandler: @escaping (AnyObject?, NSError?) -> Void) {
-        let url: URL? = ((notification as NSNotification).userInfo as! [String: AnyObject])[UIApplicationLaunchOptionsKey.url] as? URL
+      let userInfo = notification.userInfo as! [String: Any]
+      let url = userInfo["\(UIApplicationLaunchOptionsKey.url)"] as? URL
         
         // extract the code from the URL
         let code = self.parametersFromQueryString(url?.query)["code"]

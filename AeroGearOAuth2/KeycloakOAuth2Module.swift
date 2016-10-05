@@ -28,7 +28,7 @@ open class KeycloakOAuth2Module: OAuth2Module {
             return;
         }
         let paramDict:[String:String] = [ "client_id": config.clientId, "refresh_token": self.oauth2Session.refreshToken!]
-        http.POST(config.revokeTokenEndpoint!, parameters: paramDict, completionHandler: { (response, error) in
+        http.POST(config.revokeTokenEndpoint!, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
             if (error != nil) {
                 completionHandler(nil, error)
                 return
@@ -44,7 +44,7 @@ open class KeycloakOAuth2Module: OAuth2Module {
     
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    open override func login(_ completionHandler: (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
+    open override func login(_ completionHandler: @escaping (Any?, OpenIDClaim?, NSError?) -> Void) {
         var openIDClaims: OpenIDClaim?
         
         self.requestAccess { (response: AnyObject?, error: NSError?) -> Void in
@@ -75,7 +75,7 @@ open class KeycloakOAuth2Module: OAuth2Module {
                 paramDict["client_secret"] = config.clientSecret!
             }
             
-            http.POST(config.refreshTokenEndpoint!, parameters: paramDict, completionHandler: { (response, error) in
+            http.POST(config.refreshTokenEndpoint!, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
                 if (error != nil) {
                     completionHandler(nil, error)
                     return
@@ -91,7 +91,7 @@ open class KeycloakOAuth2Module: OAuth2Module {
                     
                     // in Keycloak refresh token get refreshed every time you use them
                     self.oauth2Session.saveAccessToken(accessToken, refreshToken: refreshToken, accessTokenExpiration: exp, refreshTokenExpiration: expRefresh)
-                    completionHandler(accessToken, nil);
+                    completionHandler(accessToken as AnyObject?, nil);
                 }
             })
         }

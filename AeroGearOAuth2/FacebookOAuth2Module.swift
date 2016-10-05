@@ -40,7 +40,7 @@ open class FacebookOAuth2Module: OAuth2Module {
             paramDict["client_secret"] = unwrapped
         }
         
-        http.POST(config.accessTokenEndpoint, parameters: paramDict, completionHandler: { (response, error) in
+        http.POST(config.accessTokenEndpoint, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
             
             if (error != nil) {
                 completionHandler(nil, error)
@@ -53,7 +53,8 @@ open class FacebookOAuth2Module: OAuth2Module {
                 
                 let charSet: NSMutableCharacterSet = NSMutableCharacterSet()
                 charSet.addCharacters(in: "&=")
-                let array = unwrappedResponse.components(separatedBy: charSet)
+                let array = unwrappedResponse.components(separatedBy: charSet as CharacterSet)
+              
                 for (index, elt) in array.enumerated() {
                     if elt == "access_token" {
                         accessToken = array[index+1]
@@ -65,7 +66,7 @@ open class FacebookOAuth2Module: OAuth2Module {
                     }
                 }
                 self.oauth2Session.saveAccessToken(accessToken, refreshToken: nil, accessTokenExpiration: expiredIn, refreshTokenExpiration: nil)
-                completionHandler(accessToken, nil)
+                completionHandler(accessToken as AnyObject?, nil)
             }
         })
     }
@@ -82,7 +83,7 @@ open class FacebookOAuth2Module: OAuth2Module {
         }
         let paramDict:[String:String] = ["access_token":self.oauth2Session.accessToken!]
         
-        http.DELETE(config.revokeTokenEndpoint!, parameters: paramDict, completionHandler: { (response, error) in
+        http.DELETE(config.revokeTokenEndpoint!, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
             
             if (error != nil) {
                 completionHandler(nil, error)
@@ -99,7 +100,7 @@ open class FacebookOAuth2Module: OAuth2Module {
     
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    override open func login(_ completionHandler: @escaping (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
+    override open func login(_ completionHandler: @escaping (Any?, OpenIDClaim?, NSError?) -> Void) {
         self.requestAccess { (response:AnyObject?, error:NSError?) -> Void in
             if (error != nil) {
                 completionHandler(nil, nil, error)
@@ -111,14 +112,14 @@ open class FacebookOAuth2Module: OAuth2Module {
             }
             if let userInfoEndpoint = self.config.userInfoEndpoint {
                 
-                self.http.GET(userInfoEndpoint, parameters: paramDict, completionHandler: {(responseObject, error) in
+                self.http.GET(userInfoEndpoint, parameters: paramDict as [String : AnyObject]?, completionHandler: {(responseObject, error) in
                     if (error != nil) {
                         completionHandler(nil, nil, error)
                         return
                     }
                     if let unwrappedResponse = responseObject as? String {
                         let data = unwrappedResponse.data(using: String.Encoding.utf8)
-                        let json: AnyObject? = try! JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions(rawValue: 0))
+                        let json: AnyObject? = try! JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions(rawValue: 0)) as AnyObject?
                         var openIDClaims: FacebookOpenIDClaim?
                         if let unwrappedResponse = json as? [String: AnyObject] {
                             openIDClaims = FacebookOpenIDClaim(fromDict: unwrappedResponse)

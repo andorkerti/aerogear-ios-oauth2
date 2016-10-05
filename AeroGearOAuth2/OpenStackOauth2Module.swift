@@ -61,7 +61,7 @@ open class OpenStackOAuth2Module: OAuth2Module {
             params += "&prompt=\(prompt.urlEncode())"
         }
         
-        let url = URL(string:http.calculateURL(config.baseURL, url:config.authzEndpoint).absoluteString! + params)
+        let url = URL(string:http.calculateURL(config.baseURL, url:config.authzEndpoint).absoluteString + params)
         #if os(iOS)
         if let url = url {
             if config.isWebView {
@@ -89,7 +89,7 @@ open class OpenStackOAuth2Module: OAuth2Module {
         var paramDict:[String:String] = [ "client_id": config.clientId]
         paramDict["secret"] = config.clientSecret
         paramDict["token"] = self.oauth2Session.accessToken!
-        http.POST(config.revokeTokenEndpoint!, parameters: paramDict, completionHandler: { (response, error) in
+        http.POST(config.revokeTokenEndpoint!, parameters: paramDict as [String : AnyObject]?, completionHandler: { (response, error) in
             if (error != nil) {
                 completionHandler(nil, error)
                 return
@@ -105,7 +105,7 @@ open class OpenStackOAuth2Module: OAuth2Module {
     
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    open override func login(_ completionHandler: (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
+    open override func login(_ completionHandler: @escaping (Any?, OpenIDClaim?, NSError?) -> Void) {
         var openIDClaims: OpenIDClaim?
         
         // hotfix to clear persistent tokens in keychain on login
@@ -148,13 +148,13 @@ open class OpenStackOAuth2Module: OAuth2Module {
      
      :param: completionHandler A block object to be executed when the request operation finishes.
      */
-    open override func requestAccess(_ completionHandler: (AnyObject?, NSError?) -> Void) {
+    open override func requestAccess(_ completionHandler: @escaping (AnyObject?, NSError?) -> Void) {
         if (self.oauth2Session.accessToken != nil && self.oauth2Session.tokenIsNotExpired()) {
             // we already have a valid access token, nothing more to be done
             completionHandler(self.oauth2Session.accessToken! as AnyObject?, nil);
         } else if (self.oauth2Session.refreshToken != nil && self.oauth2Session.refreshTokenIsNotExpired()) {
             // need to refresh token
-            self.refreshAccessToken(completionHandler)
+            self.refreshAccessToken(completionHandler as! (Any?, NSError?) -> Void)
         } else if (self.config.isServiceAccount) {
             self.loginClientCredentials() { (accessToken, claims, error) in
                 completionHandler(accessToken, error)
@@ -179,14 +179,14 @@ open class OpenStackOAuth2Module: OAuth2Module {
             paramDict["client_secret"] = unwrapped
         }
         
-        http.POST(config.accessTokenEndpoint, parameters: paramDict, completionHandler: {(responseObject, error) in
+        http.POST(config.accessTokenEndpoint, parameters: paramDict as [String : AnyObject]?, completionHandler: {(responseObject, error) in
             if (error != nil) {
                 completionHandler(nil, error)
                 return
             }
             
             if let unwrappedResponse = responseObject as? [String: AnyObject] {
-                completionHandler(unwrappedResponse, nil)
+                completionHandler(unwrappedResponse as AnyObject?, nil)
             }
         })
     }
@@ -218,7 +218,6 @@ open class OpenStackOAuth2Module: OAuth2Module {
     
     func generateNonce() -> String {
         let s = NSMutableData(length: 32)
-        SecRandomCopyBytes(kSecRandomDefault, s!.length, UnsafeMutablePointer<UInt8>(s!.mutableBytes))
         return s!.base64EncodedString(options: NSData.Base64EncodingOptions(rawValue: 0))
     }
 }

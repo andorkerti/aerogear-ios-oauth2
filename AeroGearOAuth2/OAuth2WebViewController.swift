@@ -29,7 +29,7 @@ class OAuth2WebViewController: UIViewController, UIWebViewDelegate {
     var webView : UIWebView = UIWebView()
     
     convenience init() {
-        self.init(URL: URL())
+      self.init(URL: URL(string: "")!)
     }
     
     init(URL: Foundation.URL) {
@@ -38,7 +38,7 @@ class OAuth2WebViewController: UIViewController, UIWebViewDelegate {
     }
     
     required init?(coder aDecoder: NSCoder) {
-        self.targetURL = URL()
+      self.targetURL = URL(string: "")!
         super.init(coder: aDecoder)
     }
     
