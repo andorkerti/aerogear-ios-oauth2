@@ -20,7 +20,7 @@ import Foundation
 /**
 Handy extensions to NSDate
 */
-extension NSDate
+extension Date
 {
     
     /**
@@ -30,14 +30,14 @@ extension NSDate
     
     :returns: the NSDate object.
     */
-    public convenience init(dateString:String) {
-        let dateStringFormatter = NSDateFormatter()
+    public init(dateString:String) {
+        let dateStringFormatter = DateFormatter()
         dateStringFormatter.dateFormat = "yyyy-MM-dd hh:mm:ss a"
-        let d = dateStringFormatter.dateFromString(dateString)
+        let d = dateStringFormatter.date(from: dateString)
         if let unwrappedDate = d {
-            self.init(timeInterval:0, sinceDate:unwrappedDate)
+            (self as NSDate).init(timeInterval:0, since:unwrappedDate)
         } else {
-            self.init()
+            (self as NSDate).init()
         }
     }
     
@@ -48,8 +48,8 @@ extension NSDate
     :returns: a formatted string object.
     */
     public func toString() -> String {
-        let dateStringFormatter = NSDateFormatter()
+        let dateStringFormatter = DateFormatter()
         dateStringFormatter.dateFormat = "yyyy-MM-dd hh:mm:ss a"
-        return dateStringFormatter.stringFromDate(self)
+        return dateStringFormatter.string(from: self)
     }
 }

@@ -21,7 +21,7 @@ import AeroGearHttp
 /**
 An OAuth2Module subclass specific to 'Facebook' authorization
 */
-public class FacebookOAuth2Module: OAuth2Module {
+open class FacebookOAuth2Module: OAuth2Module {
     
     public required init(config: Config, session: OAuth2Session?, requestSerializer: RequestSerializer, responseSerializer: ResponseSerializer) {
         super.init(config: config, session: session, requestSerializer: JsonRequestSerializer(), responseSerializer: StringResponseSerializer())
@@ -33,7 +33,7 @@ public class FacebookOAuth2Module: OAuth2Module {
     :param: code the 'authorization' code to exchange for an access token.
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    override public func exchangeAuthorizationCodeForAccessToken(code: String, completionHandler: (AnyObject?, NSError?) -> Void) {
+    override open func exchangeAuthorizationCodeForAccessToken(_ code: String, completionHandler: @escaping (AnyObject?, NSError?) -> Void) {
         var paramDict: [String: String] = ["code": code, "client_id": config.clientId, "redirect_uri": config.redirectURL, "grant_type":"authorization_code"]
         
         if let unwrapped = config.clientSecret {
@@ -52,14 +52,14 @@ public class FacebookOAuth2Module: OAuth2Module {
                 var expiredIn: String? = nil
                 
                 let charSet: NSMutableCharacterSet = NSMutableCharacterSet()
-                charSet.addCharactersInString("&=")
-                let array = unwrappedResponse.componentsSeparatedByCharactersInSet(charSet)
-                for (index, elt) in array.enumerate() {
+                charSet.addCharacters(in: "&=")
+                let array = unwrappedResponse.components(separatedBy: charSet)
+                for (index, elt) in array.enumerated() {
                     if elt == "access_token" {
                         accessToken = array[index+1]
                     }
                 }
-                for (index, elt) in array.enumerate() {
+                for (index, elt) in array.enumerated() {
                     if elt == "expires" {
                         expiredIn = array[index+1]
                     }
@@ -75,7 +75,7 @@ public class FacebookOAuth2Module: OAuth2Module {
     
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    override public func revokeAccess(completionHandler: (AnyObject?, NSError?) -> Void) {
+    override open func revokeAccess(_ completionHandler: @escaping (AnyObject?, NSError?) -> Void) {
         // return if not yet initialized
         if (self.oauth2Session.accessToken == nil) {
             return;
@@ -99,7 +99,7 @@ public class FacebookOAuth2Module: OAuth2Module {
     
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    override public func login(completionHandler: (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
+    override open func login(_ completionHandler: @escaping (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
         self.requestAccess { (response:AnyObject?, error:NSError?) -> Void in
             if (error != nil) {
                 completionHandler(nil, nil, error)
@@ -117,8 +117,8 @@ public class FacebookOAuth2Module: OAuth2Module {
                         return
                     }
                     if let unwrappedResponse = responseObject as? String {
-                        let data = unwrappedResponse.dataUsingEncoding(NSUTF8StringEncoding)
-                        let json: AnyObject? = try! NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions(rawValue: 0))
+                        let data = unwrappedResponse.data(using: String.Encoding.utf8)
+                        let json: AnyObject? = try! JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions(rawValue: 0))
                         var openIDClaims: FacebookOpenIDClaim?
                         if let unwrappedResponse = json as? [String: AnyObject] {
                             openIDClaims = FacebookOpenIDClaim(fromDict: unwrappedResponse)

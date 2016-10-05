@@ -376,6 +376,7 @@
 				TargetAttributes = {
 					4833046119AF1635002F8DA9 = {
 						CreatedOnToolsVersion = 6.0;
+						LastSwiftMigration = 0800;
 					};
 					4833046C19AF1635002F8DA9 = {
 						CreatedOnToolsVersion = 6.0;
@@ -630,6 +631,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "org.aerogear.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = AeroGearOAuth2;
 				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 3.0;
 			};
 			name = Release;
 		};

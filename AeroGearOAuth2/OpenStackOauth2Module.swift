@@ -11,23 +11,23 @@ import UIKit
 import SafariServices
 #endif
 
-public class OpenStackOAuth2Module: OAuth2Module {
+open class OpenStackOAuth2Module: OAuth2Module {
     
     /**
      Request an authorization code.
      
      :param: completionHandler A block object to be executed when the request operation finishes.
      */
-    public override func requestAuthorizationCode(completionHandler: (AnyObject?, NSError?) -> Void) {
+    open override func requestAuthorizationCode(_ completionHandler: @escaping (AnyObject?, NSError?) -> Void) {
         // register with the notification system in order to be notified when the 'authorization' process completes in the
         // external browser, and the oauth code is available so that we can then proceed to request the 'access_token'
         // from the server.
         if applicationLaunchNotificationObserver == nil {
-            applicationLaunchNotificationObserver = NSNotificationCenter.defaultCenter().addObserverForName(AGAppLaunchedWithURLNotification, object: nil, queue: nil, usingBlock: { (notification: NSNotification!) -> Void in
+            applicationLaunchNotificationObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: AGAppLaunchedWithURLNotification), object: nil, queue: nil, using: { (notification: Notification!) -> Void in
                 #if os(iOS)
                 self.extractCode(notification, completionHandler: completionHandler)
                 if self.isWebViewPresented {
-                    UIApplication.sharedApplication().keyWindow?.rootViewController?.dismissViewControllerAnimated(true, completion: nil)
+                    UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)
                 }
                 #endif
             })
@@ -38,19 +38,19 @@ public class OpenStackOAuth2Module: OAuth2Module {
         // that is a user switched into the app without Accepting or Cancelling the authorization
         // request in the external browser process.
         if applicationDidBecomeActiveNotificationObserver == nil {
-            applicationDidBecomeActiveNotificationObserver = NSNotificationCenter.defaultCenter().addObserverForName(AGAppDidBecomeActiveNotification, object:nil, queue:nil, usingBlock: { (note: NSNotification!) -> Void in
+            applicationDidBecomeActiveNotificationObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: AGAppDidBecomeActiveNotification), object:nil, queue:nil, using: { (note: Notification!) -> Void in
                 // check the state
-                if (self.state == .AuthorizationStatePendingExternalApproval) {
+                if (self.state == .authorizationStatePendingExternalApproval) {
                     // unregister
                     self.stopObserving()
                     // ..and update state
-                    self.state = .AuthorizationStateUnknown;
+                    self.state = .authorizationStateUnknown;
                 }
             })
         }
         
         // update state to 'Pending'
-        self.state = .AuthorizationStatePendingExternalApproval
+        self.state = .authorizationStatePendingExternalApproval
         
         // calculate final url
         var params = "?scope=\(config.scope)&redirect_uri=\(config.redirectURL.urlEncode())&client_id=\(config.clientId)&response_type=code&nonce=\(generateNonce())"
@@ -61,27 +61,27 @@ public class OpenStackOAuth2Module: OAuth2Module {
             params += "&prompt=\(prompt.urlEncode())"
         }
         
-        let url = NSURL(string:http.calculateURL(config.baseURL, url:config.authzEndpoint).absoluteString! + params)
+        let url = URL(string:http.calculateURL(config.baseURL, url:config.authzEndpoint).absoluteString! + params)
         #if os(iOS)
         if let url = url {
             if config.isWebView {
                 let webView : UIViewController
                 if #available(iOS 9.0, *) {
-                    webView = SFSafariViewController(URL: url)
+                    webView = SFSafariViewController(url: url)
                 } else {
                     webView = OAuth2WebViewController(URL: url)
                 }
-                UIApplication.sharedApplication().keyWindow?.rootViewController?.presentViewController(webView, animated: true, completion: { () -> Void in
+                UIApplication.shared.keyWindow?.rootViewController?.present(webView, animated: true, completion: { () -> Void in
                     self.isWebViewPresented = true
                 })
             } else {
-                UIApplication.sharedApplication().openURL(url)
+                UIApplication.shared.openURL(url)
             }
         }
         #endif
     }
     
-    public override func revokeAccess(completionHandler: (AnyObject?, NSError?) -> Void) {
+    open override func revokeAccess(_ completionHandler: @escaping (AnyObject?, NSError?) -> Void) {
         // return if not yet initialized
         if (self.oauth2Session.accessToken == nil) {
             return;
@@ -105,7 +105,7 @@ public class OpenStackOAuth2Module: OAuth2Module {
     
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    public override func login(completionHandler: (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
+    open override func login(_ completionHandler: (AnyObject?, OpenIDClaim?, NSError?) -> Void) {
         var openIDClaims: OpenIDClaim?
         
         // hotfix to clear persistent tokens in keychain on login
@@ -133,11 +133,11 @@ public class OpenStackOAuth2Module: OAuth2Module {
                         openIDClaims = OpenIDClaim(fromDict: decodedToken)
                     }
                 }
-                completionHandler(accessToken, openIDClaims, nil)
+                completionHandler(accessToken as AnyObject?, openIDClaims, nil)
             }
             else {
                 if let accessToken = response as? String {
-                    completionHandler(accessToken, nil, nil)
+                    completionHandler(accessToken as AnyObject?, nil, nil)
                 }
             }
         }
@@ -148,10 +148,10 @@ public class OpenStackOAuth2Module: OAuth2Module {
      
      :param: completionHandler A block object to be executed when the request operation finishes.
      */
-    public override func requestAccess(completionHandler: (AnyObject?, NSError?) -> Void) {
+    open override func requestAccess(_ completionHandler: (AnyObject?, NSError?) -> Void) {
         if (self.oauth2Session.accessToken != nil && self.oauth2Session.tokenIsNotExpired()) {
             // we already have a valid access token, nothing more to be done
-            completionHandler(self.oauth2Session.accessToken!, nil);
+            completionHandler(self.oauth2Session.accessToken! as AnyObject?, nil);
         } else if (self.oauth2Session.refreshToken != nil && self.oauth2Session.refreshTokenIsNotExpired()) {
             // need to refresh token
             self.refreshAccessToken(completionHandler)
@@ -172,7 +172,7 @@ public class OpenStackOAuth2Module: OAuth2Module {
     :param: code the 'authorization' code to exchange for an access token.
     :param: completionHandler A block object to be executed when the request operation finishes.
     */
-    public override func exchangeAuthorizationCodeForAccessToken(code: String, completionHandler: (AnyObject?, NSError?) -> Void) {
+    open override func exchangeAuthorizationCodeForAccessToken(_ code: String, completionHandler: @escaping (AnyObject?, NSError?) -> Void) {
         var paramDict: [String: String] = ["code": code, "client_id": config.clientId, "redirect_uri": config.redirectURL, "grant_type":"authorization_code"]
         
         if let unwrapped = config.clientSecret {
@@ -191,26 +191,26 @@ public class OpenStackOAuth2Module: OAuth2Module {
         })
     }
     
-    func decode(token: String) -> [String: AnyObject]? {
-        let string = token.componentsSeparatedByString(".")
+    func decode(_ token: String) -> [String: AnyObject]? {
+        let string = token.components(separatedBy: ".")
         let toDecode = string[1] as String
         
         
-        var stringtoDecode: String = toDecode.stringByReplacingOccurrencesOfString("-", withString: "+") // 62nd char of encoding
-        stringtoDecode = stringtoDecode.stringByReplacingOccurrencesOfString("_", withString: "/") // 63rd char of encoding
+        var stringtoDecode: String = toDecode.replacingOccurrences(of: "-", with: "+") // 62nd char of encoding
+        stringtoDecode = stringtoDecode.replacingOccurrences(of: "_", with: "/") // 63rd char of encoding
         switch (stringtoDecode.utf16.count % 4) {
         case 2: stringtoDecode = "\(stringtoDecode)=="
         case 3: stringtoDecode = "\(stringtoDecode)="
         default: // nothing to do stringtoDecode can stay the same
             print("")
         }
-        let dataToDecode = NSData(base64EncodedString: stringtoDecode, options: [])
-        let base64DecodedString = NSString(data: dataToDecode!, encoding: NSUTF8StringEncoding)
+        let dataToDecode = Data(base64Encoded: stringtoDecode, options: [])
+        let base64DecodedString = NSString(data: dataToDecode!, encoding: String.Encoding.utf8.rawValue)
         
         var values: [String: AnyObject]?
         if let string = base64DecodedString {
-            if let data = string.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true) {
-                values = try! NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.AllowFragments) as? [String : AnyObject]
+            if let data = string.data(using: String.Encoding.utf8.rawValue, allowLossyConversion: true) {
+                values = try! JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions.allowFragments) as? [String : AnyObject]
             }
         }
         return values
@@ -219,7 +219,7 @@ public class OpenStackOAuth2Module: OAuth2Module {
     func generateNonce() -> String {
         let s = NSMutableData(length: 32)
         SecRandomCopyBytes(kSecRandomDefault, s!.length, UnsafeMutablePointer<UInt8>(s!.mutableBytes))
-        return s!.base64EncodedStringWithOptions(NSDataBase64EncodingOptions(rawValue: 0))
+        return s!.base64EncodedString(options: NSData.Base64EncodingOptions(rawValue: 0))
     }
 }
 
